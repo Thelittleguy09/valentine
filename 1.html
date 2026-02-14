@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Happy Birthday</title>
+    <style>
+        body { background: #000; margin: 0; overflow: hidden; font-family: 'Courier New', monospace; }
+        #canvas { display: block; }
+        #code {
+            position: absolute; bottom: 15%; left: 5%;
+            color: #ff5e99; font-size: 24px; font-weight: bold;
+            line-height: 1.8; z-index: 10;
+        }
+        .cursor { display: inline-block; width: 10px; height: 24px; background: #ff5e99; margin-left: 5px; animation: blink 0.8s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div id="code"></div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const codeDiv = document.getElementById('code');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const messages = [
+            "Hey you 💕", "Happy Birthday! 🎂", "May God bless you 🌟",
+            "And give you much happiness ✨", "Just saying... you're pretty awesome 😎",
+            "Sending good vibes and maybe a wink 😉", "Hope u have a great day today! ❤️"
+        ];
+
+        // --- TREE CONFIGURATION ---
+        const treeConfig = {
+            startX: canvas.width * 0.65, // Position to the right
+            startY: canvas.height - 50,
+            initialLen: 120,
+            initialWidth: 10,
+            branchColor: '#4b2c20',
+            heartColors: ['#ff5e99', '#ff99cc', '#ff3366', '#ffb3ba', '#f06292']
+        };
+
+        function drawHeart(x, y, size, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.bezierCurveTo(x, y - size/2, x - size, y - size/2, x - size, y);
+            ctx.bezierCurveTo(x - size, y + size/2, x, y + size, x, y + size);
+            ctx.bezierCurveTo(x, y + size, x + size, y + size/2, x + size, y);
+            ctx.bezierCurveTo(x + size, y - size/2, x, y - size/2, x, y);
+            ctx.fill();
+        }
+
+        // --- ANIMATED GROWTH LOGIC ---
+        async function growBranch(x, y, len, angle, width) {
+            if (len < 8) {
+                // Bloom hearts at the end
+                for(let i = 0; i < 3; i++) {
+                    await new Promise(r => setTimeout(r, 20));
+                    drawHeart(x + (Math.random()-0.5)*15, y + (Math.random()-0.5)*15, Math.random()*5+4, treeConfig.heartColors[Math.floor(Math.random()*5)]);
+                }
+                return;
+            }
+
+            // Draw current segment
+            ctx.beginPath();
+            ctx.strokeStyle = len < 30 ? '#ffadad' : treeConfig.branchColor;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.moveTo(x, y);
+            
+            const nextX = x + Math.sin(angle * Math.PI / 180) * len;
+            const nextY = y - Math.cos(angle * Math.PI / 180) * len;
+            
+            ctx.lineTo(nextX, nextY);
+            ctx.stroke();
+
+            // Wait a tiny bit for the "growing" effect
+            await new Promise(r => setTimeout(r, 40));
+
+            // Recursive calls for branches
+            const leftAngle = angle - (15 + Math.random() * 20);
+            const rightAngle = angle + (15 + Math.random() * 20);
+            const newLen = len * (0.7 + Math.random() * 0.15);
+
+            // Run branches in parallel
+            await Promise.all([
+                growBranch(nextX, nextY, newLen, leftAngle, width * 0.7),
+                growBranch(nextX, nextY, newLen, rightAngle, width * 0.7)
+            ]);
+        }
+
+        // --- TYPEWRITER LOGIC ---
+        async function startTypewriter() {
+            for (let line of messages) {
+                let currentLine = document.createElement('div');
+                codeDiv.appendChild(currentLine);
+                for (let char of line) {
+                    currentLine.innerHTML += char;
+                    await new Promise(r => setTimeout(r, 70));
+                }
+                await new Promise(r => setTimeout(r, 500));
+            }
+            // Add final cursor
+            const cursor = document.createElement('span');
+            cursor.className = 'cursor';
+            codeDiv.appendChild(cursor);
+        }
+
+        // --- INITIALIZE ---
+        window.onload = () => {
+            growBranch(treeConfig.startX, treeConfig.startY, treeConfig.initialLen, 0, treeConfig.initialWidth);
+            // Delay typewriter slightly to mimic video flow
+            setTimeout(startTypewriter, 1000);
+        };
+    </script>
+</body>
+</html>
